@@ -1,0 +1,70 @@
+nohup: ignoring input
+Snapshots from file...
+Computing metrics and wall values...
+
+Bulk values:
+Re_b = 3663.307 , rho_b = 569.049 [kg/m3], u_b = 2.999 [m/s], mu_b = 4.659e-05 [Pa s], P_b = 6791598.441 [Pa], T_b = 126.410 [K]
+
+Wall values:
+Bottom wall: rho_bw = 839.349 [kg/m3], u_tau_bw = 0.191 [m/s], mu_bw = 0.0001602 [Pa s], tau_bw = 30.536 [N/m2], T_bw = 94.644 [K], T_tau_bw = 1.423 [K], nu_bw = 1.909e-07 [m2/s], alpha_bw = 8.9e-08 [m2/s], Cf_bw = 0.012 , Re_tau_bw = 99.938 , Pr_bw = 2.145 , Nu_bw = 9.599 , St_bw = 0.045
+Top wall: rho_tw = 148.005 [kg/m3], u_tau_tw = 0.272 [m/s], mu_tw = 1.531e-05 [Pa s], tau_tw = 10.929 [N/m2], T_tw = 189.288 [K], T_tau_tw = 5.646 [K], nu_tw = 1.034e-07 [m2/s], alpha_tw = 1.065e-07 [m2/s], Cf_tw = 0.004 , Re_tau_tw = 262.677 , Pr_tw = 0.972 , Nu_tw = 22.915 , St_tw = 0.090
+max_index_y_bw = 80, at y_bw = 1.287822934761114, y_plus_bw = 128.70220335293556
+max_index_y_tw = 50, at y_tw = 0.6848890375945706, y_plus_tw = 179.90426924202987
+SPOD computation...
+SPOD from file...
+Peak frequency = 1953.12 Hz
+f_bw+ = 0.0102
+f_tw+ = 0.0027
+Computing phase speed for var_idx = 0
+Spanwise coherence (mean) = 2.93e-01
+Spanwise coherence (min / max) = 3.99e-03 / 6.25e-01
+Spanwise energy (min / max) = 3.54e-10 / 1.21e-06
+kx = 5371.72
+kx_weighted = 4994.93
+Phase speed c = 2.457 m/s
+c_bw+ = 12.881
+c_tw+ = 9.041
+Computing phase speed for var_idx = 1
+Spanwise coherence (mean) = 2.63e-01
+Spanwise coherence (min / max) = 6.24e-04 / 7.58e-01
+Spanwise energy (min / max) = 2.63e-09 / 3.99e-06
+kx = 4314.08
+kx_weighted = 4877.13
+Phase speed c = 2.516 m/s
+c_bw+ = 13.192
+c_tw+ = 9.260
+Computing phase speed for var_idx = 2
+Spanwise coherence (mean) = 1.52e-01
+Spanwise coherence (min / max) = 2.73e-03 / 4.62e-01
+Spanwise energy (min / max) = 3.17e-14 / 3.85e-07
+kx = 5564.45
+kx_weighted = 5201.63
+Phase speed c = 2.359 m/s
+c_bw+ = 12.369
+c_tw+ = 8.682
+Computing phase speed for var_idx = 3
+Spanwise coherence (mean) = 2.68e-01
+Spanwise coherence (min / max) = 7.15e-03 / 6.98e-01
+Spanwise energy (min / max) = 6.76e-10 / 6.19e-07
+kx = 6132.16
+kx_weighted = 5563.63
+Phase speed c = 2.206 m/s
+c_bw+ = 11.564
+c_tw+ = 8.117
+Computing phase speed for var_idx = 4
+Spanwise coherence (mean) = 2.90e-01
+Spanwise coherence (min / max) = 4.79e-03 / 6.22e-01
+Spanwise energy (min / max) = 4.00e-10 / 3.45e-07
+kx = 5493.28
+kx_weighted = 5194.51
+Phase speed c = 2.362 m/s
+c_bw+ = 12.386
+c_tw+ = 8.694
+Computing SPOD mode structures and energy maps...
+Mode idx = 0 at freq = 1953.12 Hz
+Mode idx = 1 at freq = 1953.12 Hz
+/home/jofre/Members/ARA/CF_DNS/SPOD/SPOD_3D.py:785: UserWarning: No contour levels were found within the data range.
+  contours = plt.tricontour(x_data_norm, y_data_norm, u_data_norm,levels=[level], colors='black',linestyles=ls,linewidths=0.25)
+/home/jofre/Members/ARA/CF_DNS/SPOD/SPOD_3D.py:785: UserWarning: No contour levels were found within the data range.
+  contours = plt.tricontour(x_data_norm, y_data_norm, u_data_norm,levels=[level], colors='black',linestyles=ls,linewidths=0.25)
+Mode idx = 2 at freq = 1953.12 Hz
