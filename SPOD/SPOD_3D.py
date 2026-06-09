@@ -6,6 +6,7 @@ import glob
 import numpy as np
 import h5py
 import math
+import pandas as pd
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
@@ -20,9 +21,9 @@ from matplotlib.colors import LinearSegmentedColormap
 import dask.array as da
 from scipy.fft import fft, ifft, fftn, ifftn
 from matplotlib.ticker import LogFormatterMathtext
-from scipy.ndimage import gaussian_filter
 import matplotlib.ticker as mticker
-
+from scipy.ndimage import gaussian_filter, gaussian_filter1d
+from scipy.interpolate import interp1d
 
 cm_data = [[0.2081, 0.1663, 0.5292], [0.2116238095, 0.1897809524, 0.5776761905], 
  [0.212252381, 0.2137714286, 0.6269714286], [0.2081, 0.2386, 0.6770857143], 
@@ -595,20 +596,20 @@ class SPOD_process:
 
         # Colorbar
         cbar = plt.colorbar( cs, shrink = 0.14, pad = 0.02, ticks = [u_min,0,u_max] , aspect=5)
-        cbar.ax.tick_params( labelsize = 9 )
+        cbar.ax.tick_params( labelsize = 16 )
         plt.xlim(0.0, 4*pi)
         plt.xticks([0.0, pi, 2*pi, 3*pi, 4*pi],[ r'${0.0}$',  r'${\pi}$',  r'${2 \pi}$',  r'${3 \pi}$',  r'${4 \pi}$'])
-        plt.tick_params( axis = 'x', left = True, right = True, top = True, bottom = True, direction = 'inout', labelsize = 9 )
+        plt.tick_params( axis = 'x', left = True, right = True, top = True, bottom = True, direction = 'inout', labelsize = 16 )
         plt.ylim( 0.0, 2)
         plt.yticks( np.arange( 0.0, 2.01, 1.0 ) )
-        plt.tick_params( axis = 'y', left = True, right = True, top = True, bottom = True, direction = 'inout', labelsize = 9 )
+        plt.tick_params( axis = 'y', left = True, right = True, top = True, bottom = True, direction = 'inout', labelsize = 16 )
         plt.gca().set_aspect( 'equal', adjustable = 'box' )
         ax = plt.gca()
         ax.tick_params( axis = 'both', pad = 7.5 )
-        plt.text( 12.9, 2.05, r'${u^{\prime}}^{+}$', fontsize = 9 )
+        plt.text( 12.9, 2.05, r'${u^{\prime}}^{+}$', fontsize = 16 )
 
-        plt.xlabel( r'${x/\delta}$', size = 9)
-        plt.ylabel( r'${y/\delta}$', size = 9 )
+        plt.xlabel( r'${x/\delta}$', size = 16 ) 
+        plt.ylabel( r'${y/\delta}$', size = 16 )
 
         plt.savefig(f'figures/XY_POD_original_u_{snapshot_idx}.png', format = 'png', bbox_inches = 'tight', dpi=600 )
 
@@ -631,20 +632,20 @@ class SPOD_process:
 
         # Colorbar
         cbar = plt.colorbar( cs, shrink = 0.14, pad = 0.02, ticks = [u_min,0,u_max], aspect=5)
-        cbar.ax.tick_params( labelsize = 9 )
+        cbar.ax.tick_params( labelsize = 16 )
         plt.xlim(0.0, 4*pi)
         plt.xticks([0.0, pi, 2*pi, 3*pi, 4*pi],[ r'${0.0}$',  r'${\pi}$',  r'${2 \pi}$',  r'${3 \pi}$',  r'${4 \pi}$'])
-        plt.tick_params( axis = 'x', left = True, right = True, top = True, bottom = True, direction = 'inout', labelsize = 9 )
+        plt.tick_params( axis = 'x', left = True, right = True, top = True, bottom = True, direction = 'inout', labelsize = 16 )
         plt.ylim( 0.0, 2)
         plt.yticks( np.arange( 0.0, 2.01, 1.0 ) )
-        plt.tick_params( axis = 'y', left = True, right = True, top = True, bottom = True, direction = 'inout', labelsize = 9 )
+        plt.tick_params( axis = 'y', left = True, right = True, top = True, bottom = True, direction = 'inout', labelsize = 16 )
         plt.gca().set_aspect( 'equal', adjustable = 'box' )
         ax = plt.gca()
         ax.tick_params( axis = 'both', pad = 7.5 )
-        plt.text( 12.9, 2.05, r'${u^{\prime}}^{+}$', fontsize = 9 )
+        plt.text( 12.9, 2.05, r'${u^{\prime}}^{+}$', fontsize = 16 )
 
-        plt.xlabel( r'${x/\delta}$', size = 9)
-        plt.ylabel( r'${y/\delta}$', size = 9 )
+        plt.xlabel( r'${x/\delta}$', size = 16 ) 
+        plt.ylabel( r'${y/\delta}$', size = 16 )
 
         plt.savefig(f'figures/XY_SPOD_reconstructed_u_{snapshot_idx}.png', format = 'png', bbox_inches = 'tight', dpi=600 )
 
@@ -656,23 +657,363 @@ class SPOD_process:
             y_smooth = np.convolve(y, box, mode='same')
             return y_smooth
         idx_peak = np.argmax(E0)
+        
+        # Normalize
+        freqs = freqs*self.delta_h/self.ub
+
         f_peak = freqs[idx_peak]
         
         E0_smooth = smooth(E0,5)
         E0[3:] = E0_smooth[3:]
         plt.semilogy(freqs, E0/np.max(E0), color='royalblue')
         plt.scatter(f_peak, 1.0, color='red', zorder=3)        
-        plt.xlim(0, 240000)
-        plt.xticks([0.0, 1.0*1E5, 2.0*1E5],[ r'${0.0}$',   r'${1.0}$',  r'${2.0}$'])
+        plt.xlim(0, 7.5)
+        plt.xticks([0.0, 2.5, 5.0, 7.5],[ r'${0.0}$',   r'${2.5}$', r'${5.0}$', r'${7.5}$'])
+        plt.tick_params( axis = 'x', left = True, right = True, top = True, bottom = True, direction = 'inout', labelsize = 16 )
+        plt.tick_params( axis = 'y', left = True, right = True, top = True, bottom = True, direction = 'inout', labelsize = 16 )
 
-        plt.xlabel(r'$f\;[\mathrm{Hz}] \cdot 10^5$')
-        plt.ylabel(r'$E_0 / E_{0, \max}$')
+        #plt.xlabel(r'$f\;[\mathrm{Hz}] \cdot 10^5$')
+        plt.xlabel(r'$f$', size = 16)
+        plt.ylabel(r'$E_0 / E_{0, \max}$', size = 16)
         #plt.xlabel("$Frequency [Hz]$")
         #plt.ylabel("$E_0$")
         ax = plt.gca()
         ax.yaxis.set_major_formatter(mticker.LogFormatterMathtext())
-        plt.savefig(f'figures/Spectrum_SPOD_{nfft}.png', dpi=300, bbox_inches='tight')
+        plt.savefig(f'figures/Spectrum_SPOD_{nfft}.png', dpi=600, bbox_inches='tight')
         
+    def Resolvent_reconstruction(self, Phi_f, df, kx, y_pb, mode_idx, var_idx, freq):
+        
+        # ==========================================================
+        # GRID / DIMENSIONS
+        # ==========================================================
+
+        nx = int(self.n_x)
+        ny = int(self.n_y)
+        nz = int(self.n_z)
+
+        grid = np.load(f"{self.save_dir}/grid.npy")
+
+        slice_idx = nz // 2
+
+        x_data = grid[0, :, :, slice_idx] / self.delta_h
+        y_data = grid[1, :, :, slice_idx] / self.delta_h
+
+        x = x_data[:, 0]
+        y_spod = y_data[0, :]
+
+        # ==========================================================
+        # LOAD RESOLVENT RESPONSE MODE
+        # ==========================================================
+
+        y_r = df["y"].values
+
+        if var_idx == 0:
+            q_r = (
+                df["rho_re"].values
+                + 1j * df["rho_im"].values
+            )
+            label = r'$\rho^\prime$'
+
+        elif var_idx == 1:
+            q_r = (
+                df["u_re"].values
+                + 1j * df["u_im"].values
+            )
+            label = r'$u^\prime$'
+
+        elif var_idx == 2:
+            q_r = (
+                df["v_re"].values
+                + 1j * df["v_im"].values
+            )
+            label = r'$v^\prime$'
+
+        elif var_idx == 3:
+            q_r = (
+                df["w_re"].values
+                + 1j * df["w_im"].values
+            )
+            label = r'$w^\prime$'
+
+        elif var_idx == 4:
+            q_r = (
+                df["T_re"].values
+                + 1j * df["T_im"].values
+            )
+            label = r'$T^\prime$'
+
+        else:
+            raise ValueError("Invalid var_idx")
+
+        # ==========================================================
+        # FILTER RESOLVENT MODE
+        # ==========================================================
+
+        q_r_filt = (
+            gaussian_filter1d(np.real(q_r), sigma=2.0)
+            +
+            1j * gaussian_filter1d(np.imag(q_r), sigma=2.0)
+        )
+
+        # ==========================================================
+        # EXTRACT SPOD MODE
+        # ==========================================================
+
+        len_delta = self.Delta_volume.shape[0]
+
+        ini = int(var_idx * len_delta)
+        fin = int((var_idx + 1) * len_delta)
+
+        mode_data = Phi_f[ini:fin, mode_idx].reshape((nx, ny, nz))
+
+        # Mid-span slice
+        mode_slice = mode_data[:, :, slice_idx]
+
+        # ==========================================================
+        # SPOD WALL-NORMAL ENVELOPE
+        # ==========================================================
+
+        q_spod_y = np.sqrt(
+            np.mean(np.abs(mode_slice)**2, axis=0)
+        )
+
+        q_spod_y = gaussian_filter1d(q_spod_y, sigma=1.5)
+
+        #q_spod_y /= np.max(np.abs(q_spod_y))
+        q_spod_y /= np.sqrt(np.trapz(np.abs(q_spod_y)**2, y_spod))
+
+        # ==========================================================
+        # INTERPOLATE RESOLVENT TO SPOD GRID
+        # ==========================================================
+
+        interp_func = interp1d(
+            y_r,
+            q_r_filt,
+            kind='cubic',
+            fill_value='extrapolate'
+        )
+
+        q_r_interp = interp_func(y_spod)
+
+        q_r_y = np.abs(q_r_interp)
+
+        #q_r_y /= np.max(np.abs(q_r_y))
+        q_r_y /= np.sqrt(np.trapz(np.abs(q_r_y)**2, y_spod))
+        # ==========================================================
+        # OVERLAP COEFFICIENT
+        # ==========================================================
+
+        numerator = np.trapz(
+            q_spod_y * q_r_y,
+            y_spod
+        )
+
+        denominator = np.sqrt(
+            np.trapz(q_spod_y**2, y_spod)
+            *
+            np.trapz(q_r_y**2, y_spod)
+        )
+
+        gamma = np.abs(numerator) / denominator
+
+        print(f"Overlap coefficient gamma = {gamma:.3f}")
+
+        # ==========================================================
+        # WALL-NORMAL COMPARISON PLOT
+        # ==========================================================
+
+        plt.clf()
+
+        plt.figure(figsize=(6, 2))
+
+        plt.plot(y_spod,q_spod_y,color='royalblue',linewidth=1.5,label='$|\Phi_{\mathrm{SPOD}}(y)|$')
+
+        plt.plot(y_spod,q_r_y,color='firebrick',linewidth=1.5,label='$|\Psi_{\mathrm{RES}}(y)|$')
+
+        plt.ylabel(r'$|\phi|, |\psi|$', size=12)
+        plt.xlabel(r'$y/\delta$', size=12)
+
+        plt.xlim(0.0, 2.0)
+        plt.xticks([0.0, 1.0, 2.0],[ r'${0.0}$',  r'${1.0}$',  r'${2.0}$'])
+        plt.tick_params(axis='x', left=True, right=True, top=True, bottom=True, direction='inout', labelsize=12)
+        plt.ylim(0.0, 4.0)
+        plt.yticks([0.0, 2.0, 4.0],[ r'${0.0}$',  r'${2.0}$', r'${4.0}$'])
+        plt.tick_params(axis='y', left=True, right=True, top=True, bottom=True, direction='inout', labelsize=12)
+        plt.legend(shadow=False, fancybox=False, frameon=False, ncol=2, loc='upper left', fontsize=12)
+
+        plt.tight_layout()
+        plt.savefig(f'figures/Resolvent_SPOD_overlap_var_{var_idx}.png',dpi=600)
+
+        # ==========================================================
+        # RESOLVENT PHYSICAL-SPACE RECONSTRUCTION
+        # ==========================================================
+
+        q_res_xy = np.real(
+            q_r_interp[None, :]
+            *
+            np.exp(1j * kx * x[:, None])
+        )
+
+        # Optional smoothing
+        #q_res_xy = gaussian_filter(
+        #    q_res_xy,
+        #    sigma=1
+        #)
+
+        # Normalize
+        q_res_xy /= np.max(np.abs(q_res_xy))
+
+        # ==========================================================
+        # PREPARE PLOTTING
+        # ==========================================================
+
+        x_data_norm = x_data.flatten()
+        y_data_norm = y_data.flatten()
+
+        u_data_norm = q_res_xy.flatten()
+
+        vmin = -1.0
+        vmax = 1.0
+
+        # ==========================================================
+        # XY RECONSTRUCTED RESOLVENT MODE
+        # ==========================================================
+
+        # Clear plot
+        plt.clf()
+        plt.close('all')
+        pi = math.pi
+
+        # Plot data
+        #my_cmap = parula_map
+        my_norm = colors.Normalize( vmin = vmin, vmax = vmax )
+        cs = plt.tricontourf( x_data_norm, y_data_norm, u_data_norm, cmap = "bwr", norm = my_norm, levels = np.linspace(vmin, vmax, 100) )
+
+        # Pseudoboiling line
+        def smooth(y, box_pts):
+            box = np.ones(box_pts)/box_pts
+            y_smooth = np.convolve(y, box, mode='same')
+            return y_smooth
+        y_pb_smooth = smooth(y_pb,2)
+        y_pb_smooth[0:1] = y_pb[0:1]
+        y_pb_smooth[-2:] = y_pb[-2:]
+        # Contours
+        #contour_levels = [-0.5, 0.0, 0.5]
+        #linestyles = ['dotted', 'dashed', 'dashdot']  # different linestyles for each level
+        #u_data_norm  = gaussian_filter(u_data_norm, sigma=1)
+        #for level, ls in zip(contour_levels, linestyles):
+            #contours = plt.tricontour(x_data_norm, y_data_norm, u_data_norm,levels=[level], colors='black',linestyles=ls,linewidths=0.25)
+        y_pb_plot = y_pb_smooth[1:-1]
+        plt.plot(x_data[:,0],y_pb_plot[::2]/self.delta_h,linestyle = ':', linewidth = 0.5, color = 'darkviolet', zorder = 1)
+        # Colorbar
+        cbar = plt.colorbar( cs, shrink = 0.10, pad = 0.02, ticks = [vmin,0,vmax], aspect=5 )
+        cbar.ax.tick_params( labelsize = 12 )
+        plt.xlim(0.0, 4*pi)
+        plt.xticks([0.0, pi, 2*pi, 3*pi, 4*pi],[ r'${0.0}$',  r'${\pi}$',  r'${2 \pi}$',  r'${3 \pi}$',  r'${4 \pi}$'])
+        plt.tick_params( axis = 'x', left = True, right = True, top = True, bottom = True, direction = 'inout', labelsize = 12 )
+        plt.ylim( 0.0, 2)
+        plt.yticks( np.arange( 0.0, 2.01, 1.0 ) )
+        plt.tick_params( axis = 'y', left = True, right = True, top = True, bottom = True, direction = 'inout', labelsize = 12 )
+        plt.gca().set_aspect( 'equal', adjustable = 'box' )
+        ax = plt.gca()
+        ax.tick_params( axis = 'both', pad = 7.5 )
+        #plt.text( 12.9, 2.05, r'${u^{\prime}}^{+}$', fontsize = 16 )
+        plt.text( 12.9, 2.05, label, fontsize = 12 )
+
+        plt.xlabel( r'${x/\delta}$', size = 12 )
+        plt.ylabel( r'${y/\delta}$', size = 12 )
+
+        plt.savefig(f'figures/Resolvent_Mode_0_u_SPOD_f_max.png', format = 'png', bbox_inches = 'tight', dpi=600 )
+
+
+        # ==========================================================
+        # SPOD PHYSICAL-SPACE RECONSTRUCTION
+        # ==========================================================
+
+        # Projection onto harmonic
+        q_spod_xy = np.mean(
+            mode_slice * np.exp(-1j * kx * x[:,None]),
+            axis=0
+        )
+
+        q_spod_xy = np.real(
+            q_spod_xy[None,:] * np.exp(1j*kx*x[:,None])
+        )
+        # Optional smoothing
+        #q_res_xy = gaussian_filter(
+        #    q_res_xy,
+        #    sigma=1
+        #)
+
+        # Normalize
+        q_spod_xy /= np.max(np.abs(q_spod_xy))
+
+        # ==========================================================
+        # PREPARE PLOTTING
+        # ==========================================================
+
+        x_data_norm = x_data.flatten()
+        y_data_norm = y_data.flatten()
+
+        u_data_norm = q_spod_xy.flatten()
+
+        vmin = -1.0
+        vmax = 1.0
+
+        # ==========================================================
+        # XY RECONSTRUCTED RESOLVENT MODE
+        # ==========================================================
+
+        # Clear plot
+        plt.clf()
+        plt.close('all')
+        pi = math.pi
+
+        # Plot data
+        #my_cmap = parula_map
+        my_norm = colors.Normalize( vmin = vmin, vmax = vmax )
+        cs = plt.tricontourf( x_data_norm, y_data_norm, u_data_norm, cmap = "bwr", norm = my_norm, levels = np.linspace(vmin, vmax, 100) )
+
+        # Pseudoboiling line
+        def smooth(y, box_pts):
+            box = np.ones(box_pts)/box_pts
+            y_smooth = np.convolve(y, box, mode='same')
+            return y_smooth
+        y_pb_smooth = smooth(y_pb,2)
+        y_pb_smooth[0:1] = y_pb[0:1]
+        y_pb_smooth[-2:] = y_pb[-2:]
+        # Contours
+        #contour_levels = [-0.5, 0.0, 0.5]
+        #linestyles = ['dotted', 'dashed', 'dashdot']  # different linestyles for each level
+        #u_data_norm  = gaussian_filter(u_data_norm, sigma=1)
+        #for level, ls in zip(contour_levels, linestyles):
+            #contours = plt.tricontour(x_data_norm, y_data_norm, u_data_norm,levels=[level], colors='black',linestyles=ls,linewidths=0.25)
+        y_pb_plot = y_pb_smooth[1:-1]
+        plt.plot(x_data[:,0],y_pb_plot[::2]/self.delta_h,linestyle = ':', linewidth = 0.5, color = 'darkviolet', zorder = 1)
+        # Colorbar
+        cbar = plt.colorbar( cs, shrink = 0.10, pad = 0.02, ticks = [vmin,0,vmax], aspect=5 )
+        cbar.ax.tick_params( labelsize = 12 )
+        plt.xlim(0.0, 4*pi)
+        plt.xticks([0.0, pi, 2*pi, 3*pi, 4*pi],[ r'${0.0}$',  r'${\pi}$',  r'${2 \pi}$',  r'${3 \pi}$',  r'${4 \pi}$'])
+        plt.tick_params( axis = 'x', left = True, right = True, top = True, bottom = True, direction = 'inout', labelsize = 12 )
+        plt.ylim( 0.0, 2)
+        plt.yticks( np.arange( 0.0, 2.01, 1.0 ) )
+        plt.tick_params( axis = 'y', left = True, right = True, top = True, bottom = True, direction = 'inout', labelsize = 12 )
+        plt.gca().set_aspect( 'equal', adjustable = 'box' )
+        ax = plt.gca()
+        ax.tick_params( axis = 'both', pad = 7.5 )
+        #plt.text( 12.9, 2.05, r'${u^{\prime}}^{+}$', fontsize = 16 )
+        plt.text( 12.9, 2.05, label, fontsize = 12 )
+
+        plt.xlabel( r'${x/\delta}$', size = 12 )
+        plt.ylabel( r'${y/\delta}$', size = 12 )
+
+        plt.savefig(f'figures/SPOD_Mode_0_u_SPOD_f_max.png', format = 'png', bbox_inches = 'tight', dpi=600 )
+
+
+        return gamma,y_spod,q_spod_y,q_r_y,q_res_xy
+
+
 
     def plot_SPOD_mode_structure(self, Phi, mode_idx, var_idx, label, y_pb, freq_idx, nfft, plot_type, slice_axis='z'):
         """
@@ -735,7 +1076,9 @@ class SPOD_process:
         z_data = grid[2,:,:,slice_idx]/self.delta_h
         y_data_norm      = np.asarray( y_data.flatten() )
         x_data_norm      = np.asarray( x_data.flatten() )
-
+        
+        # Filtering
+        mode_slice_plot = gaussian_filter(mode_slice, sigma=0.75)
 
         ## ORIGINAL DATA
         u_data           = mode_slice
@@ -778,30 +1121,30 @@ class SPOD_process:
         y_pb_smooth[-2:] = y_pb[-2:]
         # Contours
         if plot_type == 'real' and  (mode_idx == 0 or mode_idx == 1):
-            contour_levels = [-0.5, 0.0, 0.5]
-            linestyles = ['dotted', 'dashed', 'dashdot']  # different linestyles for each level
-            u_data_norm  = gaussian_filter(u_data_norm, sigma=1)
-            for level, ls in zip(contour_levels, linestyles):
-                contours = plt.tricontour(x_data_norm, y_data_norm, u_data_norm,levels=[level], colors='black',linestyles=ls,linewidths=0.25)
+            #contour_levels = [-0.5, 0.0, 0.5]
+            #linestyles = ['dotted', 'dashed', 'dashdot']  # different linestyles for each level
+            #u_data_norm  = gaussian_filter(u_data_norm, sigma=1)
+            #for level, ls in zip(contour_levels, linestyles):
+            #    contours = plt.tricontour(x_data_norm, y_data_norm, u_data_norm,levels=[level], colors='black',linestyles=ls,linewidths=0.25)
             y_pb_plot = y_pb_smooth[1:-1]
             plt.plot(x_data[:,0],y_pb_plot[::2]/self.delta_h,linestyle = ':', linewidth = 0.5, color = 'darkviolet', zorder = 1)
         # Colorbar
         cbar = plt.colorbar( cs, shrink = 0.14, pad = 0.02, ticks = [vmin,0,vmax], aspect=5 )
-        cbar.ax.tick_params( labelsize = 9 )
+        cbar.ax.tick_params( labelsize = 16 )
         plt.xlim(0.0, 4*pi)
         plt.xticks([0.0, pi, 2*pi, 3*pi, 4*pi],[ r'${0.0}$',  r'${\pi}$',  r'${2 \pi}$',  r'${3 \pi}$',  r'${4 \pi}$'])
-        plt.tick_params( axis = 'x', left = True, right = True, top = True, bottom = True, direction = 'inout', labelsize = 9 )
+        plt.tick_params( axis = 'x', left = True, right = True, top = True, bottom = True, direction = 'inout', labelsize = 16 )
         plt.ylim( 0.0, 2)
         plt.yticks( np.arange( 0.0, 2.01, 1.0 ) )
-        plt.tick_params( axis = 'y', left = True, right = True, top = True, bottom = True, direction = 'inout', labelsize = 9 )
+        plt.tick_params( axis = 'y', left = True, right = True, top = True, bottom = True, direction = 'inout', labelsize = 16 )
         plt.gca().set_aspect( 'equal', adjustable = 'box' )
         ax = plt.gca()
         ax.tick_params( axis = 'both', pad = 7.5 )
-        #plt.text( 12.9, 2.05, r'${u^{\prime}}^{+}$', fontsize = 9 )
-        plt.text( 12.9, 2.05, label, fontsize = 9 )
+        #plt.text( 12.9, 2.05, r'${u^{\prime}}^{+}$', fontsize = 16 )
+        plt.text( 12.9, 2.05, label, fontsize = 16 )
 
-        plt.xlabel( r'${x/\delta}$', size = 9)
-        plt.ylabel( r'${y/\delta}$', size = 9 )
+        plt.xlabel( r'${x/\delta}$', size = 16 )
+        plt.ylabel( r'${y/\delta}$', size = 16 )
 
         plt.savefig(f'figures/SPOD_Mode_{mode_idx}_var_{var_idx}_freq_{freq_idx}_{nfft}_{plot_type}.png', format = 'png', bbox_inches = 'tight', dpi=600 )
 
@@ -896,24 +1239,25 @@ class SPOD_process:
                 plt.plot(x_data[:,0], slice_1D_plot, marker = markers[idx], linestyle=':', markersize=2, color=colors[idx], label=fr'$k = {mode_idx}$')
 
         pi = np.pi
-        plt.xlabel(r'$x/\delta$', size = 9)
-        plt.ylabel(r'$\theta_k(f)$', size = 9)
+        plt.xlabel(r'$x/\delta$', size = 12 )
+        plt.ylabel(r'$\theta_k(f)$', size = 12 )
         plt.xlim(0.0, 4*pi)
         plt.xticks([0.0, pi, 2*pi, 3*pi, 4*pi],[ r'${0.0}$',  r'${\pi}$',  r'${2 \pi}$',  r'${3 \pi}$',  r'${4 \pi}$'])
-        plt.tick_params(axis='x', left=True, right=True, top=True, bottom=True, direction='inout', labelsize=9)
+        plt.tick_params(axis='x', left=True, right=True, top=True, bottom=True, direction='inout', labelsize=12)
         plt.ylim(-2*pi, 6*pi)
         plt.yticks([-2*pi, 0.0, 2*pi, 4*pi, 6*pi],[r'${-2\pi}$', r'${0.0}$', r'${2\pi}$', r'${4\pi}$', r'${6\pi}$'])
-        plt.tick_params(axis='y', left=True, right=True, top=True, bottom=True, direction='inout', labelsize=9)
-        plt.legend(shadow=False, fancybox=False, frameon=False, loc='best', fontsize=9)
-        plt.tight_layout()
+        plt.tick_params(axis='y', left=True, right=True, top=True, bottom=True, direction='inout', labelsize=12)
 
         filename = 'figures/SPOD_1D_overlay'
         if var_indices is not None:
             filename += f'_vars_{"_".join(map(str,var_indices))}_mode_{mode_idx}_freq_{freq_idx}.png'
+            plt.legend(shadow=False, fancybox=False, frameon=False, loc='upper left', ncol = 2, fontsize=12)
         else:
             filename += f'_modes_{"_".join(map(str,mode_indices))}_var_{var_idx}_freq_{freq_idx}.png'
+            plt.legend(shadow=False, fancybox=False, frameon=False, loc='best', fontsize=12)
 
-        plt.savefig(filename, dpi=300)
+        plt.tight_layout()
+        plt.savefig(filename, dpi=600)
 
     def compute_phase_speed_vs_y(self, Phi_f, mode_idx, var_idx, freq):
 
@@ -974,10 +1318,12 @@ class SPOD_process:
         #plt.xticks([0.0, 1.0*1E5, 2.0*1E5],[ r'${0.0}$',   r'${1.0}$',  r'${2.0}$'])
         #plt.ylim(0, 4)
         #plt.xticks([0.0, 2.0, 4.0],[ r'${0.0}$',   r'${1.0}$',  r'${2.0}$'])
+        plt.tick_params( axis = 'x', left = True, right = True, top = True, bottom = True, direction = 'inout', labelsize = 16 )
+        plt.tick_params( axis = 'y', left = True, right = True, top = True, bottom = True, direction = 'inout', labelsize = 16 )
         
-        plt.xlabel(r'$y/\delta$')
-        plt.ylabel(r'$c(y)$')
-        plt.savefig(f'figures/SPOD_c_vs_y_mode_{mode_idx}_freq_{freq_idx}.png', dpi=300)
+        plt.xlabel(r'$y/\delta$', size = 16)
+        plt.ylabel(r'$c(y)$', size = 16)
+        plt.savefig(f'figures/SPOD_c_vs_y_mode_{mode_idx}_freq_{freq_idx}.png', dpi=600)
 
         return c_y
 
@@ -1034,10 +1380,12 @@ class SPOD_process:
         plt.xticks([0.0, pi, 2*pi, 3*pi, 4*pi],[ r'${0.0}$',  r'${\pi}$',  r'${2 \pi}$',  r'${3 \pi}$',  r'${4 \pi}$'])
         #plt.ylim(0, 4)
         #plt.xticks([0.0, 2.0, 4.0],[ r'${0.0}$',   r'${1.0}$',  r'${2.0}$'])
+        plt.tick_params( axis = 'x', left = True, right = True, top = True, bottom = True, direction = 'inout', labelsize = 16 )
+        plt.tick_params( axis = 'y', left = True, right = True, top = True, bottom = True, direction = 'inout', labelsize = 16 )
 
-        plt.xlabel(r'$x/\delta$')
-        plt.ylabel(r'$c(x)$')
-        plt.savefig(f'figures/SPOD_c_vs_x_mode_{mode_idx}_freq_{freq_idx}.png', dpi=300)
+        plt.xlabel(r'$x/\delta$', size = 16)
+        plt.ylabel(r'$c(x)$', size = 16)
+        plt.savefig(f'figures/SPOD_c_vs_x_mode_{mode_idx}_freq_{freq_idx}.png', dpi=600)
         
         return c_x
 
@@ -1149,29 +1497,29 @@ class SPOD_process:
         cbar = plt.colorbar( cs, shrink = 0.14, pad = 0.02, ticks = ticks, aspect=5 )
         cbar.ax.yaxis.set_major_formatter(mticker.FuncFormatter(fmt))
         #cbar.ax.set_yticklabels(ticks_labels)
-        cbar.ax.tick_params( labelsize = 9 )
+        cbar.ax.tick_params( labelsize = 16 )
         #cbar.ax.set_ylabel(r"$|E| \times 10^{%d}$" % power, fontsize=12)
         # Remove the default ylabel to avoid confusion
         cbar.ax.set_ylabel('')
         # Add label text on top, centered horizontally above the colorbar
         #cbar.ax.text(0.5, 1.05, r"$|E| \times 10^{%d}$" % power,
                      #ha='center', va='bottom', fontsize=12, transform=cbar.ax.transAxes)
-        plt.text( 12.9, 2.05, r"$|E| \times 10^{%d}$" % power, fontsize = 9 )
+        plt.text( 12.9, 2.05, r"$|E| \times 10^{%d}$" % power, fontsize = 16 )
         
         # Plot lims
         plt.xlim(0.0, 4*pi)
         plt.xticks([0.0, pi, 2*pi, 3*pi, 4*pi],[ r'${0.0}$',  r'${\pi}$',  r'${2 \pi}$',  r'${3 \pi}$',  r'${4 \pi}$'])
-        plt.tick_params( axis = 'x', left = True, right = True, top = True, bottom = True, direction = 'inout', labelsize = 9 )
+        plt.tick_params( axis = 'x', left = True, right = True, top = True, bottom = True, direction = 'inout', labelsize = 16 )
         plt.ylim( 0.0, 2)
         plt.yticks( np.arange( 0.0, 2.01, 1.0 ) )
-        plt.tick_params( axis = 'y', left = True, right = True, top = True, bottom = True, direction = 'inout', labelsize = 9 )
+        plt.tick_params( axis = 'y', left = True, right = True, top = True, bottom = True, direction = 'inout', labelsize = 16 )
         plt.gca().set_aspect( 'equal', adjustable = 'box' )
         ax = plt.gca()
         ax.tick_params( axis = 'both', pad = 7.5 )
-        #plt.text( 12.9, 2.05, r'${u^{\prime}}^{+}$', fontsize = 9 )
+        #plt.text( 12.9, 2.05, r'${u^{\prime}}^{+}$', fontsize = 16 )
 
-        plt.xlabel( r'${x/\delta}$', size = 9)
-        plt.ylabel( r'${y/\delta}$', size = 9 )
+        plt.xlabel( r'${x/\delta}$', size = 16 ) 
+        plt.ylabel( r'${y/\delta}$', size = 16 )
         # Plot
         #plt.clf()
         #plt.figure(figsize=(6, 5))
@@ -1246,9 +1594,11 @@ class SPOD_process:
         weights = amp / np.max(amp)
         kx_weighted = np.nansum(dtheta_dx * weights) / np.nansum(weights)
         print(f"kx_weighted = {kx_weighted:.2f}")
-
-        omega = 2 * np.pi * freq
-
+        lambda_x = 2 * np.pi / kx_weighted
+        omega    = 2 * np.pi * freq
+        print(f"lambda_x = {lambda_x:.2f}")
+        print(f"omega = {omega:.2f}")
+        
         c = omega / kx_weighted
 
         return c
@@ -1284,8 +1634,11 @@ if __name__ == "__main__":
     SPOD_class = SPOD_process(save_dir,cases,dt, delta, L_x, L_z, 
             u_tau_bw, mu_bw, rho_bw, u_tau_tw, mu_tw, rho_tw)
     
+    ### OBTAIN RESOLVENT OPERATOR RESULTS
+    Resolvent_path = 'Resolvent_data'
+    df_res = pd.read_csv(f"{Resolvent_path}/response_SPOD.csv")
 
-    ## Compute POD
+    ## Compute SPOD
     nfft = 512 #256 #512   # MUST match what you used in compute_SPOD
     n_overlap = 0.5
     print("SPOD computation...")
@@ -1303,7 +1656,7 @@ if __name__ == "__main__":
     # Spectrum mode 0 energy
     E0 = np.array([eigvals[k][0] for k in range(len(eigvals))])
     SPOD_class.plot_SPOD_spectrum(freqs, E0, nfft)
-
+    
     # Find frequency of interest
     idx_peak = np.argmax(E0)
     f_peak   = freqs[idx_peak]
@@ -1311,6 +1664,8 @@ if __name__ == "__main__":
     f_plus_tw   = f_peak * (SPOD_class.mu_tw / SPOD_class.rho_tw) / (SPOD_class.u_tau_tw**2)
 
     print(f"Peak frequency = {f_peak:.2f} Hz")
+    f_peak_norm = f_peak*SPOD_class.delta_h/SPOD_class.ub
+    print(f"Peak frequency norm bulk = {f_peak_norm:.2f}")
     print(f"f_bw+ = {f_plus_bw:.4f}")
     print(f"f_tw+ = {f_plus_tw:.4f}")
     
@@ -1338,15 +1693,21 @@ if __name__ == "__main__":
 
         print(f"Mode idx = {mode_idx} at freq = {freqs[freq_idx]:.2f} Hz")
 
-        for var_idx in range(0, 5):
+        #for var_idx in range(0, 5):
             # Structure oscillating at specific frequency / phase cb_means
-            SPOD_class.plot_SPOD_mode_structure(Phi_f, mode_idx, var_idx, var_names[var_idx], SPOD_class.pb_mean,freq_idx, nfft, 'real')
-            SPOD_class.plot_SPOD_mode_structure(Phi_f, mode_idx, var_idx, var_names[var_idx], SPOD_class.pb_mean,freq_idx, nfft, 'phase')
+            #SPOD_class.plot_SPOD_mode_structure(Phi_f, mode_idx, var_idx, var_names[var_idx], SPOD_class.pb_mean,freq_idx, nfft, 'real')
+            #SPOD_class.plot_SPOD_mode_structure(Phi_f, mode_idx, var_idx, var_names[var_idx], SPOD_class.pb_mean,freq_idx, nfft, 'phase')
         # Energy at that frequency concentrated: near wall vs bulk vs pseudoboiling
-        SPOD_class.plot_mode_energy_map(Phi_f, mode_idx, freq_idx,nfft)
+        #SPOD_class.plot_mode_energy_map(Phi_f, mode_idx, freq_idx,nfft)
     
     # Phase at y_target pseudoboiling of the first mode for all variables and 3 modes for u'
-    SPOD_class.plot_SPOD_1D_overlay(Phi_f, mode_indices=None, var_indices=[0,1,2,3,4], freq_idx=freq_idx, nfft=nfft, y_target=1.9, slice_axis='z')
-    SPOD_class.plot_SPOD_1D_overlay(Phi_f, mode_indices=[0,1,2], var_indices=None, freq_idx=freq_idx, nfft=nfft, y_target=1.9, slice_axis='z')
-    SPOD_class.compute_phase_speed_vs_x(Phi_f, mode_idx=0, var_idx=1, freq=f_peak)
-    SPOD_class.compute_phase_speed_vs_y(Phi_f, mode_idx=0, var_idx=1, freq=f_peak)
+    #SPOD_class.plot_SPOD_1D_overlay(Phi_f, mode_indices=None, var_indices=[0,1,2,3,4], freq_idx=freq_idx, nfft=nfft, y_target=1.9, slice_axis='z')
+    #SPOD_class.plot_SPOD_1D_overlay(Phi_f, mode_indices=[0,1,2], var_indices=None, freq_idx=freq_idx, nfft=nfft, y_target=1.9, slice_axis='z')
+    #SPOD_class.compute_phase_speed_vs_x(Phi_f, mode_idx=0, var_idx=1, freq=f_peak)
+    #SPOD_class.compute_phase_speed_vs_y(Phi_f, mode_idx=0, var_idx=1, freq=f_peak)
+
+
+    # Resolvent reconstruction
+    kx = 4877*SPOD_class.delta_h
+    SPOD_class.Resolvent_reconstruction(Phi_f, df_res,kx, SPOD_class.pb_mean, mode_idx=0, var_idx=1, freq=f_peak)
+
